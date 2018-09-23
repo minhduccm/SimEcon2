@@ -32,6 +32,8 @@ func (m *Market) Buy(
 		if bid.GetPricePerUnit() > orderItemReq.PricePerUnit {
 			continue
 		}
+
+		// TODO: get actual qty of asset of agent who owns the bid
 		if bid.GetQuantity() >= orderItemReq.Quantity {
 			am.Pay(
 				agentID,

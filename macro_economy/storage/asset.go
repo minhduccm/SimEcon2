@@ -19,6 +19,10 @@ func (a *Asset) SetQuantity(qty float64) {
 	a.Quantity = qty
 }
 
+func (a *Asset) GetProducedTime() int64 {
+	return a.ProducedTime
+}
+
 func (a *Asset) SetProducedTime() {
 	a.ProducedTime = time.Now().Unix()
 }

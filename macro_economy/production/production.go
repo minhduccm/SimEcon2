@@ -2,6 +2,8 @@ package production
 
 import (
 	"errors"
+	"math"
+	"time"
 
 	"github.com/ninjadotorg/SimEcon002/common"
 	"github.com/ninjadotorg/SimEcon002/macro_economy/abstraction"
@@ -28,14 +30,26 @@ func GetProductionInstance() *Production {
 }
 
 func computeDecayNecessity(asset abstraction.Asset) abstraction.Asset {
+	decaySteps := int(math.Floor(float64(time.Now().Unix()-asset.GetProducedTime()) / common.NECESSITY_DECAY_PERIOD)) // decay period = 5m
+	for i := 1; i <= decaySteps; i++ {
+		asset.SetQuantity(common.NECESSITY_EPSILON_DECAY * asset.GetQuantity())
+	}
 	return asset
 }
 
 func computeDecayCapital(asset abstraction.Asset) abstraction.Asset {
+	decaySteps := int(math.Floor(float64(time.Now().Unix()-asset.GetProducedTime()) / common.CAPITAL_DECAY_PERIOD)) // decay period = 4m
+	for i := 1; i <= decaySteps; i++ {
+		asset.SetQuantity(common.CAPITAL_EPSILON_DECAY * asset.GetQuantity())
+	}
 	return asset
 }
 
 func computeDecayManHours(asset abstraction.Asset) abstraction.Asset {
+	decaySteps := int(math.Floor(float64(time.Now().Unix()-asset.GetProducedTime()) / common.MAN_HOURS_DECAY_PERIOD)) // decay period = 6m
+	for i := 1; i <= decaySteps; i++ {
+		asset.SetQuantity(common.MAN_HOURS_EPSILON_DECAY * asset.GetQuantity())
+	}
 	return asset
 }
 

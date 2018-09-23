@@ -66,6 +66,9 @@ func GetAgentAssets(w http.ResponseWriter, r *http.Request, econ *Economy) {
 	agentID := mux.Vars(r)["AGENT_ID"]
 	st := econ.Storage
 	assets, err := st.GetAgentAssets(agentID)
+
+	// TODO: get actual qty of these assets
+
 	res := map[string]interface{}{}
 	if err != nil {
 		res["error"] = err.Error()
@@ -121,6 +124,7 @@ func Buy(w http.ResponseWriter, r *http.Request, econ *Economy) {
 	reqQty := orderItemReq.Quantity
 
 	// validate if coin balance is enough for the order or not?
+	// TODO: should validate the other buy orders of this agent (on other asset type)
 	if accBal < orderItemReq.Quantity*orderItemReq.PricePerUnit {
 		res = map[string]interface{}{
 			"message":        "Not enough money for the buy order",
@@ -194,6 +198,7 @@ func Sell(w http.ResponseWriter, r *http.Request, econ *Economy) {
 		}
 		jsInBytes, _ := json.Marshal(res)
 		w.Write(jsInBytes)
+		return
 	}
 
 	accBal := am.GetBalance(agentID)
