@@ -6,4 +6,5 @@ import (
 
 type AgentProduction interface {
 	Produce(Storage, string, map[uint]*dto.Asset) (map[uint]Asset, error)
+	GetActualAsset(Asset) Asset
 }

@@ -39,3 +39,9 @@ func (pp *PersonProduction) Produce(
 	res, _ := st.GetAgentAssets(agentID)
 	return res, nil
 }
+
+func (pp *PersonProduction) GetActualAsset(
+	asset abstraction.Asset,
+) abstraction.Asset {
+	return computeDecayManHours(asset)
+}

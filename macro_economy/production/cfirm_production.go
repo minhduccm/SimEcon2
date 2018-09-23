@@ -40,3 +40,9 @@ func (cfp *CFirmProduction) Produce(
 	res, _ := st.GetAgentAssets(agentID)
 	return res, nil
 }
+
+func (cfp *CFirmProduction) GetActualAsset(
+	asset abstraction.Asset,
+) abstraction.Asset {
+	return computeDecayCapital(asset)
+}

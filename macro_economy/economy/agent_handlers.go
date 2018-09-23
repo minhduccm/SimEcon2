@@ -81,9 +81,9 @@ func Buy(w http.ResponseWriter, r *http.Request, econ *Economy) {
 	st := econ.Storage
 	mk := econ.Market
 	am := econ.AccountManager
+	prod := econ.Production
 
 	agentID := mux.Vars(r)["AGENT_ID"]
-
 	var orderItemReq *dto.OrderItem
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&orderItemReq)
@@ -92,31 +92,128 @@ func Buy(w http.ResponseWriter, r *http.Request, econ *Economy) {
 		return
 	}
 
-	// validate if coin balance is enough for the order or not?
+	agent, err := st.GetAgentByID(agentID)
+	if err != nil {
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	agentAsset, err := st.GetAgentAsset(agentID, orderItemReq.AssetType)
+	if err != nil {
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	agentProd, err := prod.GetProductionByAgentType(agent.GetType())
+	if err != nil {
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	curAsset := agentProd.GetActualAsset(agentAsset)
 	accBal := am.GetBalance(agentID)
+	res := map[string]interface{}{
+		"message":           "Process buy order successfully.",
+		"oldAssetQuantity":  curAsset.GetQuantity(),
+		"oldAccountBalance": accBal,
+	}
+
+	reqQty := orderItemReq.Quantity
+
+	// validate if coin balance is enough for the order or not?
 	if accBal < orderItemReq.Quantity*orderItemReq.PricePerUnit {
-		res := map[string]interface{}{
-			"error":          "Not enough money for the buy order",
+		res = map[string]interface{}{
+			"message":        "Not enough money for the buy order",
 			"accountBalance": accBal,
-			"orderQuantity":  orderItemReq.Quantity,
+			"orderQuantity":  reqQty,
 			"pricePerUnit":   orderItemReq.PricePerUnit,
+		}
+		jsInBytes, _ := json.Marshal(res)
+		w.Write(jsInBytes)
+		return
+	}
+
+	remainingRequestedQty, err := mk.Buy(agentID, orderItemReq, st, am)
+	if err != nil {
+		w.Write([]byte(err.Error()))
+	}
+
+	newAssetQuantity := curAsset.GetQuantity() + reqQty - remainingRequestedQty
+	// update asset after buying
+	curAsset.SetQuantity(newAssetQuantity)
+	st.UpdateAsset(agentID, curAsset)
+
+	res["newAccountBalance"] = am.GetBalance(agentID)
+	res["newAssetQuantity"] = newAssetQuantity
+	jsInBytes, _ := json.Marshal(res)
+	w.Write(jsInBytes)
+}
+
+// POST /agents/{AGENT_ID}/sell
+func Sell(w http.ResponseWriter, r *http.Request, econ *Economy) {
+	st := econ.Storage
+	mk := econ.Market
+	am := econ.AccountManager
+	prod := econ.Production
+
+	agentID := mux.Vars(r)["AGENT_ID"]
+	var orderItemReq *dto.OrderItem
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&orderItemReq)
+	if err != nil {
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	agent, err := st.GetAgentByID(agentID)
+	if err != nil {
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	agentAsset, err := st.GetAgentAsset(agentID, orderItemReq.AssetType)
+	if err != nil {
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	agentProd, err := prod.GetProductionByAgentType(agent.GetType())
+	if err != nil {
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	reqQty := orderItemReq.Quantity
+	curAsset := agentProd.GetActualAsset(agentAsset)
+	if curAsset.GetQuantity() < orderItemReq.Quantity {
+		res := map[string]interface{}{
+			"message":           "Not enough asset quantity for the sell order",
+			"assetType":         orderItemReq.AssetType,
+			"requestedQuantity": reqQty,
+			"remainingQuantity": curAsset.GetQuantity(),
 		}
 		jsInBytes, _ := json.Marshal(res)
 		w.Write(jsInBytes)
 	}
 
-	err = mk.Buy(
-		agentID,
-		orderItemReq,
-		st,
-		am,
-	)
+	accBal := am.GetBalance(agentID)
+	res := map[string]interface{}{
+		"message":           "Process sell order successfully.",
+		"oldAssetQuantity":  curAsset.GetQuantity(),
+		"oldAccountBalance": accBal,
+	}
+	remainingRequestedQty, err := mk.Sell(agentID, orderItemReq, st, am)
 	if err != nil {
 		w.Write([]byte(err.Error()))
 	}
-}
 
-// POST /agents/{AGENT_ID}/sell
-func Sell(w http.ResponseWriter, r *http.Request, econ *Economy) {
+	newAssetQuantity := curAsset.GetQuantity() - (reqQty - remainingRequestedQty)
+	// update asset after buying
+	curAsset.SetQuantity(newAssetQuantity)
+	st.UpdateAsset(agentID, curAsset)
 
+	res["newAccountBalance"] = am.GetBalance(agentID)
+	res["newAssetQuantity"] = newAssetQuantity
+	jsInBytes, _ := json.Marshal(res)
+	w.Write(jsInBytes)
 }

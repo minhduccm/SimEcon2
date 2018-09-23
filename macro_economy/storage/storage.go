@@ -95,6 +95,21 @@ func (st *Storage) GetAgentAssets(
 	return assets, nil
 }
 
+func (st *Storage) GetAgentAsset(
+	agentID string,
+	assetType uint,
+) (abstraction.Asset, error) {
+	assets, ok := st.Assets[agentID]
+	if !ok {
+		return nil, errors.New("Could not find out assets with the agent id")
+	}
+	asset, ok := assets[assetType]
+	if !ok {
+		return nil, errors.New("Asset type not found.")
+	}
+	return asset, nil
+}
+
 func (st *Storage) GetSortedBidsByAssetType(
 	assetType uint,
 	isDesc bool,
@@ -146,4 +161,57 @@ func (st *Storage) AppendAsk(
 		return
 	}
 	asks[agentID] = orderItem
+}
+
+func (st *Storage) GetSortedAsksByAssetType(
+	assetType uint,
+	isDesc bool,
+) abstraction.OrderItems {
+	asksByType, ok := st.Asks[assetType]
+	if !ok {
+		st.Asks[assetType] = map[string]abstraction.OrderItem{}
+		return abstraction.OrderItems{}
+	}
+	orderItems := abstraction.OrderItems{}
+	for _, orderItem := range asksByType {
+		orderItems = append(orderItems, orderItem)
+	}
+	return orderItems.SortOrderItems(isDesc)
+}
+
+func (st *Storage) RemoveAsksByAgentIDs(
+	agentIDs []string,
+	assetType uint,
+) error {
+	asksByAssetType, ok := st.Asks[assetType]
+	if !ok {
+		return errors.New("Asset type not found.")
+	}
+	for _, agentID := range agentIDs {
+		delete(asksByAssetType, agentID)
+	}
+	return nil
+}
+
+func (st *Storage) AppendBid(
+	assetType uint,
+	agentID string,
+	quantity float64,
+	pricePerUnit float64,
+) {
+	orderItem := &OrderItem{
+		AgentID:      agentID,
+		AssetType:    assetType,
+		Quantity:     quantity,
+		PricePerUnit: pricePerUnit,
+		OrderTime:    time.Now().Unix(),
+	}
+	bids, ok := st.Bids[assetType]
+	if !ok {
+		st.Bids[assetType] = map[string]abstraction.OrderItem{
+			agentID: orderItem,
+		}
+		return
+	}
+	bids[agentID] = orderItem
 }
