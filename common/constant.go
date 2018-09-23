@@ -2,6 +2,7 @@ package common
 
 const (
 	PRIIC = 1
+	SECIC = 2
 
 	// Agent types
 	PERSON          = 1

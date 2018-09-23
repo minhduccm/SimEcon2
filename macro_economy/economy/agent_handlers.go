@@ -78,7 +78,42 @@ func GetAgentAssets(w http.ResponseWriter, r *http.Request, econ *Economy) {
 
 // POST /agents/{AGENT_ID}/buy
 func Buy(w http.ResponseWriter, r *http.Request, econ *Economy) {
+	st := econ.Storage
+	mk := econ.Market
+	am := econ.AccountManager
 
+	agentID := mux.Vars(r)["AGENT_ID"]
+
+	var orderItemReq *dto.OrderItem
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&orderItemReq)
+	if err != nil {
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	// validate if coin balance is enough for the order or not?
+	accBal := am.GetBalance(agentID)
+	if accBal < orderItemReq.Quantity*orderItemReq.PricePerUnit {
+		res := map[string]interface{}{
+			"error":          "Not enough money for the buy order",
+			"accountBalance": accBal,
+			"orderQuantity":  orderItemReq.Quantity,
+			"pricePerUnit":   orderItemReq.PricePerUnit,
+		}
+		jsInBytes, _ := json.Marshal(res)
+		w.Write(jsInBytes)
+	}
+
+	err = mk.Buy(
+		agentID,
+		orderItemReq,
+		st,
+		am,
+	)
+	if err != nil {
+		w.Write([]byte(err.Error()))
+	}
 }
 
 // POST /agents/{AGENT_ID}/sell

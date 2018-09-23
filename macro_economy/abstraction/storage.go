@@ -6,4 +6,7 @@ type Storage interface {
 	UpdateAsset(string, Asset)
 	GetAgentAssets(string) (map[uint]Asset, error)
 	GetAgentByID(string) (Agent, error)
+	GetSortedBidsByAssetType(uint, bool) OrderItems
+	RemoveBidsByAgentIDs([]string, uint) error
+	AppendAsk(uint, string, float64, float64)
 }

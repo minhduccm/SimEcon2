@@ -39,9 +39,9 @@ func (accManager *AccountManager) CloseWalletAccount(
 }
 
 func (accManager *AccountManager) GetBalance(
-	agentId string,
+	agentID string,
 ) float64 {
-	acc, ok := accManager.WalletAccounts[agentId]
+	acc, ok := accManager.WalletAccounts[agentID]
 	if !ok {
 		return 0
 	}

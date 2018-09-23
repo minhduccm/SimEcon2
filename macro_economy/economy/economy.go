@@ -17,6 +17,7 @@ type Economy struct {
 	AccountManager abstraction.AccountManager
 	Storage        abstraction.Storage
 	Production     abstraction.Production
+	Market         abstraction.Market
 }
 
 var econ *Economy
@@ -25,6 +26,7 @@ func GetEconomyInstance(
 	ac abstraction.AccountManager,
 	st abstraction.Storage,
 	prod abstraction.Production,
+	m abstraction.Market,
 ) *Economy {
 	if econ != nil {
 		return econ
@@ -33,6 +35,7 @@ func GetEconomyInstance(
 		AccountManager: ac,
 		Storage:        st,
 		Production:     prod,
+		Market:         m,
 	}
 	return econ
 }
