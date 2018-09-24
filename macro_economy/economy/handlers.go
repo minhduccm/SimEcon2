@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"sync"
 
 	"github.com/gorilla/mux"
 	"github.com/ninjadotorg/SimEcon002/common"
@@ -12,17 +13,20 @@ import (
 
 // POST /types/{AGENT_TYPE}/agents
 func Join(w http.ResponseWriter, r *http.Request, econ *Economy) {
+	var mutex = &sync.Mutex{}
 	newAgentID := common.UUID()
 	am := econ.AccountManager
 	st := econ.Storage
 	agentType, _ := strconv.Atoi(mux.Vars(r)["AGENT_TYPE"])
 
+	mutex.Lock()
 	// open wallet account
 	am.OpenWalletAccount(newAgentID, 0.0)
 
 	// insert new agent
 	agent := st.InsertAgent(newAgentID, uint(agentType))
 	agent.InitAgentAssets(st)
+	mutex.Unlock()
 
 	jsInBytes, _ := json.Marshal(agent)
 	w.Write(jsInBytes)
@@ -30,6 +34,7 @@ func Join(w http.ResponseWriter, r *http.Request, econ *Economy) {
 
 // POST /agents/{AGENT_ID}/produce
 func Produce(w http.ResponseWriter, r *http.Request, econ *Economy) {
+	var mutex = &sync.Mutex{}
 	st := econ.Storage
 	prod := econ.Production
 
@@ -51,7 +56,9 @@ func Produce(w http.ResponseWriter, r *http.Request, econ *Economy) {
 		w.Write([]byte(err.Error()))
 		return
 	}
+	mutex.Lock()
 	updatedAssets, err := agentProd.Produce(st, agentID, assetsReq)
+	mutex.Unlock()
 	if err != nil {
 		w.Write([]byte(err.Error()))
 		return
@@ -81,6 +88,7 @@ func GetAgentAssets(w http.ResponseWriter, r *http.Request, econ *Economy) {
 
 // POST /agents/{AGENT_ID}/buy
 func Buy(w http.ResponseWriter, r *http.Request, econ *Economy) {
+	var mutex = &sync.Mutex{}
 	st := econ.Storage
 	mk := econ.Market
 	am := econ.AccountManager
@@ -137,7 +145,9 @@ func Buy(w http.ResponseWriter, r *http.Request, econ *Economy) {
 		return
 	}
 
+	mutex.Lock()
 	remainingRequestedQty, err := mk.Buy(agentID, orderItemReq, st, am)
+	mutex.Unlock()
 	if err != nil {
 		w.Write([]byte(err.Error()))
 	}
@@ -155,6 +165,7 @@ func Buy(w http.ResponseWriter, r *http.Request, econ *Economy) {
 
 // POST /agents/{AGENT_ID}/sell
 func Sell(w http.ResponseWriter, r *http.Request, econ *Economy) {
+	var mutex = &sync.Mutex{}
 	st := econ.Storage
 	mk := econ.Market
 	am := econ.AccountManager
@@ -207,7 +218,9 @@ func Sell(w http.ResponseWriter, r *http.Request, econ *Economy) {
 		"oldAssetQuantity":  curAsset.GetQuantity(),
 		"oldAccountBalance": accBal,
 	}
+	mutex.Lock()
 	remainingRequestedQty, err := mk.Sell(agentID, orderItemReq, st, am)
+	mutex.Unlock()
 	if err != nil {
 		w.Write([]byte(err.Error()))
 	}
